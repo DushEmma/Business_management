@@ -369,6 +369,18 @@ Get Started
                     <div className="orb orb-1" />
                     <div className="orb orb-2" />
                     <div className="orb orb-3" />
+                    <ul className="bubbles">
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                    </ul>
                 </div>
                 <Container>
                         <Row className="align-items-center py-5">

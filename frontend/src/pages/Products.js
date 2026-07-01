@@ -431,12 +431,8 @@ const Products = () => {
       <Card className="border-0 shadow-sm modern-card">
         <Card.Body className="p-0">
           <div className="card-header-modern p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div className="search-wrapper" style={{ background: 'transparent', width: '100%', maxWidth: '500px' }}>
-              <label className="mb-2 d-block fw-semibold text-dark" style={{ fontSize: '0.9rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                <FiSearch size={14} className="me-2" style={{ display: 'inline' }} />
-                Search Products
-              </label>
-              <InputGroup className="search-input-group">
+            <div className="d-flex align-items-center gap-2 flex-grow-1" style={{ maxWidth: '400px' }}>
+              <InputGroup>
                 <InputGroup.Text className="bg-light border-end-0">
                   <FiSearch className="text-muted" />
                 </InputGroup.Text>

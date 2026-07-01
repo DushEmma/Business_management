@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, InputGroup } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../components/auth/AuthContext';
@@ -17,6 +17,16 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Clear form data on mount to prevent stale state
+  useEffect(() => {
+    setFormData({ username: '', password: '' });
+    // Short timeout to combat aggressive browser autofill filling it right after mount
+    const timer = setTimeout(() => {
+      setFormData({ username: '', password: '' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -89,15 +99,12 @@ const Login = () => {
               </Card.Header>
               <Card.Body className="p-4 pt-0">
                 <Form onSubmit={handleSubmit} autoComplete="off">
-                  {/* Dummy inputs to absorb browser autofill */}
-                  <input type="text" name="username" autoComplete="username" style={{ display: 'none' }} />
-                  <input type="password" name="password" autoComplete="current-password" style={{ display: 'none' }} />
                   <Form.Group className="mb-3" controlId="username">
                     <Form.Label className="fw-semibold small text-muted">{"Username"}</Form.Label>
                     <Form.Control
                       type="text"
                       name="login_username"
-                      autoComplete="off"
+                      autoComplete="new-password"
                       placeholder={"Enter your username"}
                       value={formData.username}
                       onChange={handleChange}
@@ -118,7 +125,7 @@ const Login = () => {
                       <Form.Control
                         type={showPassword ? "text" : "password"}
                         name="login_password"
-                        autoComplete="current-password"
+                        autoComplete="new-password"
                         placeholder={"Enter your password"}
                         value={formData.password}
                         onChange={handleChange}
@@ -178,3 +185,4 @@ const Login = () => {
 };
 
 export default Login;
+
