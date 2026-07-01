@@ -431,7 +431,11 @@ const Products = () => {
       <Card className="border-0 shadow-sm modern-card">
         <Card.Body className="p-0">
           <div className="card-header-modern p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div className="search-wrapper" style={{ background: '#ffffff' }}>
+            <div className="search-wrapper" style={{ background: 'transparent', width: '100%', maxWidth: '500px' }}>
+              <label className="mb-2 d-block fw-semibold text-dark" style={{ fontSize: '0.9rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                <FiSearch size={14} className="me-2" style={{ display: 'inline' }} />
+                Search Products
+              </label>
               <InputGroup className="search-input-group">
                 <InputGroup.Text className="bg-light border-end-0">
                   <FiSearch className="text-muted" />
@@ -921,10 +925,11 @@ const Products = () => {
 
         /* Modern Card Styles */
         .modern-card { border-radius: 16px; overflow: hidden; }
-        .card-header-modern { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
-        .search-input-group { max-width: 320px; border-radius: 10px; overflow: hidden; }
-        .search-input-group .form-control { border-radius: 0 10px 10px 0; }
-        .search-input-group .input-group-text { border-radius: 10px 0 0 10px; }
+        .card-header-modern { background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%); border-bottom: 2px solid #e5e7eb; padding: 20px !important; }
+        .search-input-group { width: 100%; max-width: 500px; border-radius: 12px; overflow: hidden; border: 2px solid #667eea; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15); }
+        .search-input-group .form-control { border-radius: 0 12px 12px 0; border: none; padding: 12px 16px; font-size: 1rem; background: #ffffff; }
+        .search-input-group .form-control:focus { box-shadow: inset 0 0 0 1px #667eea; border: none; }
+        .search-input-group .input-group-text { border-radius: 12px 0 0 12px; background: linear-gradient(135deg, #667eea 0%, #5568d3 100%); border: none; color: white; padding: 12px 16px; }
         .view-toggle .btn { border-radius: 8px !important; padding: 6px 12px; }
         .view-toggle .btn:first-child { border-radius: 8px 0 0 8px !important; }
         .view-toggle .btn:last-child { border-radius: 0 8px 8px 0 !important; }

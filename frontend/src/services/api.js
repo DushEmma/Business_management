@@ -20,6 +20,10 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Don't set Content-Type for FormData - let the browser set it with the boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => {
@@ -69,11 +73,15 @@ export const getImageUrl = (path) => {
   // Handle profile pictures and other uploads that start with /uploads
   if (path.startsWith('/uploads')) {
     // For uploads, we want to use the root path directly
-    return `${window.location.origin}${path}`;
+    // Add cache-busting parameter to prevent browser caching issues
+    const separator = path.includes('?') ? '&' : '?';
+    return `${window.location.origin}${path}${separator}t=${Date.now()}`;
   }
 
   const backendUrl = baseURL.replace('/api', '');
-  return `${backendUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  const url = `${backendUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}t=${Date.now()}`;
 };
 
 export default api;

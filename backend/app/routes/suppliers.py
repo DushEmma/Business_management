@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models.user import User
@@ -60,18 +60,21 @@ def create_supplier():
     try:
         business_id = get_business_id()
         branch_id = request.args.get('branch_id', type=int) or get_active_branch_id()
-        data = request.get_json()
+        data = request.get_json(force=True, silent=True) or {}
+        print(f"DEBUG SUPPLIER POST: data={data}, business_id={business_id}, branch_id={branch_id}", flush=True)
         
-        # Validate required fields
-        required_fields = ['company_name', 'contact_person', 'email']
+        # Validate required fields (contact_person is optional per DB model)
+        required_fields = ['company_name', 'email']
         for field in required_fields:
             if not data.get(field):
+                print(f"DEBUG SUPPLIER POST: missing required field={field}", flush=True)
                 return jsonify({'error': f'{field} is required'}), 400
         
         # Validate email format
         email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if not re.match(email_regex, data['email']):
-            return jsonify({'error': 'Invalid email format'}), 400
+            print(f"DEBUG SUPPLIER POST: invalid email format={data['email']}", flush=True)
+            return jsonify({'error': 'Invalid email format. Please enter a valid email address.'}), 400
         
         # Check if supplier ID is provided, otherwise generate one
         supplier_id = data.get('supplier_id')
@@ -102,18 +105,18 @@ def create_supplier():
             branch_id=branch_id,
             supplier_id=supplier_id,
             company_name=data['company_name'],
-            contact_person=data['contact_person'],
+            contact_person=data.get('contact_person') or None,
             email=data['email'],
-            phone=data.get('phone', ''),
-            address=data.get('address', ''),
-            city=data.get('city', ''),
-            state=data.get('state', ''),
-            country=data.get('country', ''),
-            zip_code=data.get('zip_code', ''),
-            tax_id=data.get('tax_id', ''),
-            payment_terms=data.get('payment_terms', ''),
-            credit_limit=data.get('credit_limit', 0.00),
-            notes=data.get('notes', '')
+            phone=data.get('phone') or '',
+            address=data.get('address') or '',
+            city=data.get('city') or '',
+            state=data.get('state') or '',
+            country=data.get('country') or '',
+            zip_code=data.get('zip_code') or '',
+            tax_id=data.get('tax_id') or '',
+            payment_terms=data.get('payment_terms') or '',
+            credit_limit=data.get('credit_limit') or 0.00,
+            notes=data.get('notes') or ''
         )
         
         db.session.add(supplier)

@@ -304,6 +304,17 @@ def update_product(product_id):
                     # Use the uploads directory configured in app
                     uploads_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'products')
                     os.makedirs(uploads_dir, exist_ok=True)
+                    
+                    # Delete old image if it exists
+                    if product.image:
+                        try:
+                            old_image_filename = product.image.split('/')[-1]
+                            old_file_path = os.path.join(uploads_dir, old_image_filename)
+                            if os.path.exists(old_file_path):
+                                os.remove(old_file_path)
+                        except Exception as e:
+                            print(f"Warning: Could not delete old image: {str(e)}")
+                    
                     name, ext = os.path.splitext(filename)
                     filename = f"product_{product.id}_{int(datetime.utcnow().timestamp())}{ext}"
                     file_path = os.path.join(uploads_dir, filename)
