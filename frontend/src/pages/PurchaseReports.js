@@ -5,6 +5,8 @@ import { FiBarChart2, FiDownload, FiTrendingUp, FiDollarSign, FiPackage } from '
 import { useCurrency } from '../context/CurrencyContext';
 import DateRangeSelector from '../components/DateRangeSelector';
 import { DATE_RANGES, calculateDateRange, formatDateForAPI } from '../utils/dateRanges';
+import { exportToExcel } from '../utils/exportUtils';
+import toast from 'react-hot-toast';
 
 const PurchaseReports = () => {
   const { formatCurrency } = useCurrency();
@@ -120,9 +122,43 @@ const PurchaseReports = () => {
 
   const handleExport = async () => {
     try {
-      const response = await purchasesAPI.exportPurchases();
-      console.log('Export initiated:', response.data);
+      if (!reportData || !reportData.orders || reportData.orders.length === 0) {
+        toast.error('No data available to export');
+        return;
+      }
+      
+      toast.success('Generating purchase report Excel...');
+      
+      const sheets = {};
+      
+      sheets['Orders'] = reportData.orders.map(order => ({
+        'Order Number': order.order_number,
+        'Supplier': order.supplier?.company_name || 'Unknown',
+        'Date': new Date(order.order_date).toLocaleDateString(),
+        'Expected Delivery': new Date(order.expected_delivery_date).toLocaleDateString(),
+        'Status': order.status,
+        'Total Amount': order.total_amount
+      }));
+      
+      if (reportData.topSuppliers && reportData.topSuppliers.length > 0) {
+        sheets['Top Suppliers'] = reportData.topSuppliers.map(sup => ({
+          'Supplier Name': sup.name,
+          'Total Orders': sup.totalOrders,
+          'Total Amount': sup.totalAmount
+        }));
+      }
+      
+      if (reportData.topProducts && reportData.topProducts.length > 0) {
+        sheets['Top Products'] = reportData.topProducts.map(prod => ({
+          'Product Name': prod.name,
+          'Total Quantity': prod.totalQty,
+          'Total Amount': prod.totalAmount
+        }));
+      }
+      
+      exportToExcel(sheets, 'Purchase_Report');
     } catch (err) {
+      toast.error('Failed to export purchase report.');
       console.error('Export failed:', err);
     }
   };

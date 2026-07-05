@@ -69,7 +69,6 @@ import Messages from './pages/Messages';
 import Announcements from './pages/Announcements';
 import CompanyProfile from './pages/CompanyProfile';
 import UserProfile from './pages/UserProfile';
-import Permissions from './pages/Permissions';
 import SystemSettings from './pages/SystemSettings';
 import Integrations from './pages/Integrations';
 import BackupRestore from './pages/BackupRestore';
@@ -87,7 +86,6 @@ import SuperAdminLayout from './components/SuperAdminLayout';
 import APISettings from './pages/APISettings';
 import GlobalSearch from './pages/GlobalSearch';
 import DocumentViewer from './pages/DocumentViewer';
-import TeamManagement from './pages/TeamManagement';
 
 /**
  * AppRoutes Component
@@ -174,7 +172,6 @@ function AppRoutes() {
       <Route path="/announcements" element={<ProtectedRoute module="dashboard"><Layout><Announcements /></Layout></ProtectedRoute>} />
       <Route path="/company-profile" element={<ProtectedRoute module="settings"><Layout><CompanyProfile /></Layout></ProtectedRoute>} />
       <Route path="/user-profile" element={<Layout><UserProfile /></Layout>} />
-      <Route path="/permissions" element={<ProtectedRoute allowedRoles={['admin', 'superadmin']}><Layout><Permissions /></Layout></ProtectedRoute>} />
       <Route path="/system-settings" element={<ProtectedRoute allowedRoles={['superadmin']}><Layout><SystemSettings /></Layout></ProtectedRoute>} />
       <Route path="/api-settings" element={<ProtectedRoute allowedRoles={['admin', 'superadmin']}><Layout><APISettings /></Layout></ProtectedRoute>} />
       <Route path="/global-search" element={<Layout><GlobalSearch /></Layout>} />
@@ -192,11 +189,10 @@ function AppRoutes() {
       <Route path="/superadmin/advanced" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminLayout><SuperAdminAdvanced /></SuperAdminLayout></ProtectedRoute>} />
       <Route path="/superadmin/security/keys" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminLayout><SuperAdminApiKeys /></SuperAdminLayout></ProtectedRoute>} />
       
-      <Route path="/superadmin/permissions" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminLayout><Permissions /></SuperAdminLayout></ProtectedRoute>} />
+      <Route path="/superadmin/permissions" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminLayout><Users /></SuperAdminLayout></ProtectedRoute>} />
       <Route path="/superadmin/audit-logs" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminLayout><AuditLogs /></SuperAdminLayout></ProtectedRoute>} />
       <Route path="/superadmin/integrations" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminLayout><Integrations /></SuperAdminLayout></ProtectedRoute>} />
       <Route path="/superadmin/backup" element={<ProtectedRoute allowedRoles={['superadmin']}><SuperAdminLayout><BackupRestore /></SuperAdminLayout></ProtectedRoute>} />
-      <Route path="/team-management" element={<Layout><TeamManagement /></Layout>} />
     </Routes>
   );
 }

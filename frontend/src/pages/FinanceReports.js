@@ -10,6 +10,7 @@ import { reportsAPI } from '../services/api';
 import { useCurrency } from '../context/CurrencyContext';
 import DateRangeSelector from '../components/DateRangeSelector';
 import { DATE_RANGES, calculateDateRange, formatDateForAPI } from '../utils/dateRanges';
+import { exportToExcel } from '../utils/exportUtils';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -96,10 +97,66 @@ const FinanceReports = () => {
     };
 
     const handleExport = () => {
-        toast.success('Preparing financial statements for printing...');
-        setTimeout(() => {
-            window.print();
-        }, 500);
+        try {
+            if (!comprehensiveData && !profitabilityData) {
+                toast.error('No financial data available to export');
+                return;
+            }
+            
+            toast.success('Generating financial report Excel...');
+            const sheets = {};
+            
+            const incomeStatement = comprehensiveData?.income_statement || {};
+            const balanceSheet = comprehensiveData?.balance_sheet || {};
+            
+            // Overview sheet
+            sheets['Overview'] = [{
+                'Net Revenue': incomeStatement.revenue?.net_sales || 0,
+                'Gross Profit': incomeStatement.cost_of_goods_sold?.gross_profit || 0,
+                'Final Profit': incomeStatement.net_income?.after_tax || 0,
+                'Total Assets': balanceSheet.assets?.total_assets || 0
+            }];
+            
+            // Income Statement sheet
+            sheets['Income Statement'] = [
+                { 'Item': 'Gross Sales', 'Amount': incomeStatement.revenue?.gross_sales || 0 },
+                { 'Item': 'Sales Discounts', 'Amount': -(incomeStatement.revenue?.less_sales_discounts || 0) },
+                { 'Item': 'Sales Returns', 'Amount': -(incomeStatement.revenue?.less_sales_returns || 0) },
+                { 'Item': 'Net Sales', 'Amount': incomeStatement.revenue?.net_sales || 0 },
+                { 'Item': 'Cost of Goods Sold', 'Amount': -(incomeStatement.cost_of_goods_sold?.cogs || 0) },
+                { 'Item': 'Gross Profit', 'Amount': incomeStatement.cost_of_goods_sold?.gross_profit || 0 },
+                { 'Item': 'Total Operating Expenses', 'Amount': -(incomeStatement.operating_expenses?.total || 0) },
+                { 'Item': 'Operating Income', 'Amount': incomeStatement.operating_income?.amount || 0 },
+                { 'Item': 'Income Tax Provision', 'Amount': -(incomeStatement.income_tax?.tax_provision || 0) },
+                { 'Item': 'Final Profit', 'Amount': incomeStatement.net_income?.after_tax || 0 }
+            ];
+            
+            // Profitability sheet
+            if (profitabilityData?.by_category && profitabilityData.by_category.length > 0) {
+                sheets['Profitability by Category'] = profitabilityData.by_category.map(cat => ({
+                    'Category': cat.category_name,
+                    'Revenue': cat.revenue,
+                    'Cost': cat.cost,
+                    'Profit': cat.profit,
+                    'Margin (%)': cat.margin_percent
+                }));
+            }
+            
+            if (profitabilityData?.by_customer && profitabilityData.by_customer.length > 0) {
+                sheets['Top Customers'] = profitabilityData.by_customer.map(cust => ({
+                    'Customer': cust.customer_name,
+                    'Orders': cust.order_count,
+                    'Revenue': cust.revenue,
+                    'Estimated Profit': cust.estimated_profit,
+                    'Margin (%)': cust.margin_percent
+                }));
+            }
+            
+            exportToExcel(sheets, 'Financial_Report');
+        } catch (err) {
+            toast.error('Failed to export financial report');
+            console.error('Export failed:', err);
+        }
     };
 
     if (loading) {

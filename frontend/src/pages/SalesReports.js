@@ -10,6 +10,7 @@ import ActiveFiltersDisplay from '../components/ActiveFiltersDisplay';
 import { FilterProvider, useFilter } from '../context/FilterContext';
 import { DATE_RANGES, calculateDateRange, formatDateForAPI } from '../utils/dateRanges';
 import { formatNumberAmount } from '../utils/formatters';
+import { exportToExcel } from '../utils/exportUtils';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -118,10 +119,43 @@ const SalesReportsContent = () => {
 
     const handleExport = async () => {
         try {
-            toast.success('Generating sales report PDF...');
-            // In a real app, this might call a different endpoint for PDF generation
-            const response = await reportsAPI.getSalesReport();
-            console.log('Export response:', response.data);
+            if (!reportData) {
+                toast.error('No data available to export');
+                return;
+            }
+            
+            toast.success('Generating sales report Excel...');
+            
+            const sheets = {};
+            
+            if (reportData.sales_trend && reportData.sales_trend.length > 0) {
+                sheets['Sales Trend'] = reportData.sales_trend.map(item => ({
+                    'Period': item.period,
+                    'Revenue': item.revenue,
+                    'Orders': item.orders
+                }));
+            }
+            
+            if (reportData.sales_by_category && reportData.sales_by_category.length > 0) {
+                sheets['Category Distribution'] = reportData.sales_by_category.map(item => ({
+                    'Category': item.category,
+                    'Percentage (%)': item.percentage
+                }));
+            }
+            
+            if (reportData.top_products && reportData.top_products.length > 0) {
+                sheets['Top Products'] = reportData.top_products.map(item => ({
+                    'Product Name': item.name,
+                    'Category': item.category,
+                    'Total Quantity': item.total_quantity || item.quantity || 0,
+                    'Orders': item.orders,
+                    'Revenue': item.revenue,
+                    'Profit': item.profit,
+                    'Trend (%)': item.trend
+                }));
+            }
+            
+            exportToExcel(sheets, 'Sales_Report');
         } catch (err) {
             toast.error('Failed to export sales report. Please try again.');
             console.error('Error exporting sales report:', err);

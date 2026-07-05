@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useCurrency } from '../context/CurrencyContext';
 import DateRangeSelector from '../components/DateRangeSelector';
 import { DATE_RANGES, calculateDateRange, formatDateForAPI } from '../utils/dateRanges';
+import { exportToExcel } from '../utils/exportUtils';
 
 const InventoryReports = () => {
     const [report, setReport] = useState(null);
@@ -69,7 +70,41 @@ const InventoryReports = () => {
                             }
                         }}
                     />
-                    <Button variant="outline-secondary" className="d-flex align-items-center" onClick={() => toast.success('Exporting Inventory Data...')}>
+                    <Button variant="outline-secondary" className="d-flex align-items-center" onClick={() => {
+                        if (!report) {
+                            toast.error('No data available to export');
+                            return;
+                        }
+                        toast.success('Generating inventory report Excel...');
+                        const sheets = {};
+                        
+                        sheets['Overview'] = [{
+                            'Total Products': report.total_products || 0,
+                            'Low Stock Products': report.low_stock_products || 0,
+                            'Out of Stock': report.out_of_stock_products || 0,
+                            'Inventory Value': report.inventory_value || 0
+                        }];
+                        
+                        if (report.low_stock_items && report.low_stock_items.length > 0) {
+                            sheets['Low Stock Items'] = report.low_stock_items.map(item => ({
+                                'Product Name': item.name,
+                                'SKU': item.sku,
+                                'Category': item.category?.name || 'N/A',
+                                'Stock Quantity': item.stock_quantity,
+                                'Reorder Level': item.reorder_level
+                            }));
+                        }
+                        
+                        if (report.category_distribution && report.category_distribution.length > 0) {
+                            sheets['Category Distribution'] = report.category_distribution.map(cat => ({
+                                'Category': cat.category,
+                                'Count': cat.count,
+                                'Percentage (%)': cat.percentage
+                            }));
+                        }
+                        
+                        exportToExcel(sheets, 'Inventory_Report');
+                    }}>
                         <FiDownload className="me-2" /> Export Data
                     </Button>
                     <Button variant="dark" className="d-flex align-items-center" onClick={fetchInventoryReport}>

@@ -118,7 +118,6 @@ def update_user(user_id):
             user.is_active = data['is_active']
         
         if 'is_locked' in data and current_user.role in [UserRole.superadmin, UserRole.admin]:
-            from datetime import datetime
             if data['is_locked']:
                 # Lock until year 2099 — effectively permanent until admin unlocks
                 user.locked_until = datetime(2099, 12, 31, 23, 59, 59)

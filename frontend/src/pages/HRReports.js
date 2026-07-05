@@ -5,6 +5,7 @@ import { reportsAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import DateRangeSelector from '../components/DateRangeSelector';
 import { DATE_RANGES, calculateDateRange, formatDateForAPI } from '../utils/dateRanges';
+import { exportToExcel } from '../utils/exportUtils';
 
 const HRReports = () => {
     const [hrReport, setHrReport] = useState(null);
@@ -67,8 +68,42 @@ const HRReports = () => {
                             }
                         }}
                     />
-                    <Button variant="outline-secondary" className="d-flex align-items-center" onClick={() => toast.success('Exporting HR Report...')}>
-                        <FiDownload className="me-2" /> Export PDF
+                    <Button variant="outline-secondary" className="d-flex align-items-center" onClick={() => {
+                        if (!hrReport) {
+                            toast.error('No data available to export');
+                            return;
+                        }
+                        toast.success('Generating HR report Excel...');
+                        const sheets = {};
+                        
+                        sheets['Overview'] = [{
+                            'Total Employees': hrReport.total_employees || 0,
+                            'Present Today': hrReport.present_today || 0,
+                            'Pending Leave Requests': hrReport.pending_leave_requests || 0,
+                            'Active Employees': hrReport.active_employees || 0
+                        }];
+                        
+                        if (hrReport.department_distribution && hrReport.department_distribution.length > 0) {
+                            sheets['Department Distribution'] = hrReport.department_distribution.map(dept => ({
+                                'Department': dept.department,
+                                'Count': dept.count,
+                                'Percentage (%)': dept.percentage
+                            }));
+                        }
+                        
+                        if (hrReport.recent_leaves && hrReport.recent_leaves.length > 0) {
+                            sheets['Recent Leaves'] = hrReport.recent_leaves.map(leave => ({
+                                'Employee Name': `${leave.employee?.first_name || ''} ${leave.employee?.last_name || ''}`.trim(),
+                                'Leave Type': leave.leave_type,
+                                'Start Date': new Date(leave.start_date).toLocaleDateString(),
+                                'End Date': new Date(leave.end_date).toLocaleDateString(),
+                                'Status': leave.status
+                            }));
+                        }
+                        
+                        exportToExcel(sheets, 'HR_Report');
+                    }}>
+                        <FiDownload className="me-2" /> Export Report
                     </Button>
                     <Button variant="primary" className="d-flex align-items-center" onClick={fetchHRData}>
                         <FiActivity className="me-2" /> Refresh Data
