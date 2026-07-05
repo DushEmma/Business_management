@@ -13,6 +13,7 @@ const Permissions = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [currentPermission, setCurrentPermission] = useState(null);
+    const [bulkModules, setBulkModules] = useState([]);
     const [permissionData, setPermissionData] = useState({
         user_id: '',
         module: '',
@@ -114,9 +115,9 @@ const Permissions = () => {
         }
     };
 
-    const handleUpdate = async (id, granted) => {
+    const handleUpdate = async (id, updateData) => {
         try {
-            await settingsAPI.updatePermission(id, { granted });
+            await settingsAPI.updatePermission(id, updateData);
             toast.success('Permission updated successfully');
             fetchPermissions();
         } catch (err) {
@@ -239,7 +240,7 @@ const Permissions = () => {
                                                             type="switch"
                                                             id={`permission-${permission.id}`}
                                                             checked={permission.granted}
-                                                            onChange={(e) => handleUpdate(permission.id, e.target.checked)}
+                                                            onChange={(e) => handleUpdate(permission.id, { granted: e.target.checked })}
                                                             label={permission.granted ? 'Granted' : 'Revoked'}
                                                         />
                                                     </td>
@@ -297,23 +298,56 @@ const Permissions = () => {
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
-                                <Col md={3}>
+                                <Col md={4}>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Select Module</Form.Label>
-                                        <Form.Select
-                                            value={permissionData.module}
-                                            onChange={(e) => setPermissionData({ ...permissionData, module: e.target.value })}
+                                        <div className="d-flex justify-content-between align-items-center mb-2">
+                                            <Form.Label className="mb-0">Select Modules</Form.Label>
+                                            <div className="d-flex gap-2">
+                                                <Button 
+                                                    variant="link" 
+                                                    className="p-0 text-decoration-none small text-primary"
+                                                    onClick={() => setBulkModules(modules.map(m => m.value))}
+                                                >
+                                                    Select All
+                                                </Button>
+                                                <span className="text-muted small">|</span>
+                                                <Button 
+                                                    variant="link" 
+                                                    className="p-0 text-decoration-none small text-muted"
+                                                    onClick={() => setBulkModules([])}
+                                                >
+                                                    Clear
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div 
+                                            className="border rounded p-3 bg-light" 
+                                            style={{ maxHeight: '200px', overflowY: 'auto' }}
                                         >
-                                            <option value="">Choose a module</option>
-                                            {modules.map(module => (
-                                                <option key={module.value} value={module.value}>
-                                                    {module.label}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
+                                            {modules.map(module => {
+                                                const isChecked = bulkModules.includes(module.value);
+                                                return (
+                                                    <Form.Check
+                                                        key={module.value}
+                                                        type="checkbox"
+                                                        id={`bulk-module-${module.value}`}
+                                                        label={module.label}
+                                                        checked={isChecked}
+                                                        onChange={() => {
+                                                            setBulkModules(prev => 
+                                                                prev.includes(module.value)
+                                                                    ? prev.filter(m => m !== module.value)
+                                                                    : [...prev, module.value]
+                                                            );
+                                                        }}
+                                                        className="mb-2"
+                                                    />
+                                                );
+                                            })}
+                                        </div>
                                     </Form.Group>
                                 </Col>
-                                <Col md={6}>
+                                <Col md={5}>
                                     <div className="mb-4">
                                         <label className="form-label text-dark fw-medium mb-2">Permissions</label>
                                         <div className="d-flex flex-wrap gap-2">
@@ -354,26 +388,44 @@ const Permissions = () => {
                             <div className="d-flex">
                                 <Button 
                                     variant="primary" 
-                                    onClick={() => {
-                                        if (!permissionData.user_id || !permissionData.module || !permissionData.permissions || permissionData.permissions.length === 0) {
-                                            toast.error('Please select user, module, and at least one permission');
+                                    disabled={saving}
+                                    onClick={async () => {
+                                        if (!permissionData.user_id || bulkModules.length === 0 || !permissionData.permissions || permissionData.permissions.length === 0) {
+                                            toast.error('Please select user, at least one module, and at least one permission');
                                             return;
                                         }
-                                        settingsAPI.createPermission(permissionData)
-                                            .then(() => {
-                                                toast.success('Permission created successfully');
-                                                setPermissionData({
-                                                    user_id: '',
-                                                    module: '',
-                                                    permissions: ['view'],
-                                                    granted: true
+                                        
+                                        setSaving(true);
+                                        const toastId = toast.loading('Assigning permissions...');
+                                        try {
+                                            const promises = bulkModules.map(moduleValue => {
+                                                return settingsAPI.createPermission({
+                                                    user_id: permissionData.user_id,
+                                                    module: moduleValue,
+                                                    permissions: permissionData.permissions,
+                                                    granted: permissionData.granted
                                                 });
-                                                fetchPermissions();
-                                            })
-                                            .catch(() => toast.error('Failed to create permission'));
+                                            });
+                                            
+                                            await Promise.all(promises);
+                                            toast.success('Permissions assigned successfully!', { id: toastId });
+                                            setBulkModules([]);
+                                            setPermissionData(prev => ({
+                                                ...prev,
+                                                user_id: '',
+                                                module: '',
+                                                permissions: ['view'],
+                                                granted: true
+                                            }));
+                                            fetchPermissions();
+                                        } catch (err) {
+                                            toast.error('Failed to assign all permissions', { id: toastId });
+                                        } finally {
+                                            setSaving(false);
+                                        }
                                     }}
                                 >
-                                    Add Permission
+                                    {saving ? 'Assigning...' : 'Add Permissions'}
                                 </Button>
                             </div>
                         </Card.Body>
@@ -419,19 +471,24 @@ const Permissions = () => {
                             </Form.Select>
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Label>Permission</Form.Label>
-                            <Form.Select
-                                value={permissionData.permission}
-                                onChange={(e) => setPermissionData({ ...permissionData, permission: e.target.value })}
-                                required
-                            >
-                                <option value="">Select a permission</option>
+                            <Form.Label className="d-block">Permissions</Form.Label>
+                            <div className="d-flex flex-wrap gap-2">
                                 {permissionsList.map(perm => (
-                                    <option key={perm.value} value={perm.value}>
+                                    <button
+                                        key={perm.value}
+                                        type="button"
+                                        className={`btn btn-sm ${permissionData.permissions.includes(perm.value) 
+                                            ? 'btn-primary' 
+                                            : 'btn-outline-secondary'}`}
+                                        onClick={() => togglePermission(perm.value)}
+                                    >
                                         {perm.label}
-                                    </option>
+                                    </button>
                                 ))}
-                            </Form.Select>
+                            </div>
+                            {permissionData.permissions.length === 0 && (
+                                <small className="text-danger">Select at least one permission</small>
+                            )}
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Check
@@ -468,7 +525,10 @@ const Permissions = () => {
                 </Modal.Header>
                 <Form onSubmit={(e) => {
                     e.preventDefault();
-                    handleUpdate(currentPermission.id, permissionData.granted);
+                    handleUpdate(currentPermission.id, { 
+                        granted: permissionData.granted,
+                        permissions: permissionData.permissions
+                    });
                     setShowEditModal(false);
                 }}>
                     <Modal.Body>
@@ -503,19 +563,24 @@ const Permissions = () => {
                             </Form.Select>
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Label>Permission</Form.Label>
-                            <Form.Select
-                                value={permissionData.permission}
-                                onChange={(e) => setPermissionData({ ...permissionData, permission: e.target.value })}
-                                required
-                            >
-                                <option value="">Select a permission</option>
+                            <Form.Label className="d-block">Permissions</Form.Label>
+                            <div className="d-flex flex-wrap gap-2">
                                 {permissionsList.map(perm => (
-                                    <option key={perm.value} value={perm.value} selected={perm.value === permissionData.permission}>
+                                    <button
+                                        key={perm.value}
+                                        type="button"
+                                        className={`btn btn-sm ${permissionData.permissions.includes(perm.value) 
+                                            ? 'btn-primary' 
+                                            : 'btn-outline-secondary'}`}
+                                        onClick={() => togglePermission(perm.value)}
+                                    >
                                         {perm.label}
-                                    </option>
+                                    </button>
                                 ))}
-                            </Form.Select>
+                            </div>
+                            {permissionData.permissions.length === 0 && (
+                                <small className="text-danger">Select at least one permission</small>
+                            )}
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Check

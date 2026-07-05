@@ -470,6 +470,8 @@ def update_permission(permission_id):
         
         if 'granted' in data:
             permission.granted = data['granted']
+        if 'permissions' in data:
+            permission.permissions = data['permissions']
         
         db.session.commit()
         

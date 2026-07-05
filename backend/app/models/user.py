@@ -249,6 +249,8 @@ class User(db.Model):
             'approved_at': self.approved_at.isoformat() if self.approved_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'locked_until': self.locked_until.isoformat() if self.locked_until else None,
+            'is_locked': bool(self.locked_until and self.locked_until > datetime.utcnow()),
         }
         
         # Get permissions - with fallback for backward compatibility

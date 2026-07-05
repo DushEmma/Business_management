@@ -116,6 +116,16 @@ def update_user(user_id):
         
         if 'is_active' in data and current_user.role in [UserRole.superadmin, UserRole.admin, UserRole.manager]:
             user.is_active = data['is_active']
+        
+        if 'is_locked' in data and current_user.role in [UserRole.superadmin, UserRole.admin]:
+            from datetime import datetime
+            if data['is_locked']:
+                # Lock until year 2099 — effectively permanent until admin unlocks
+                user.locked_until = datetime(2099, 12, 31, 23, 59, 59)
+                user.failed_login_attempts = 0
+            else:
+                user.locked_until = None
+                user.failed_login_attempts = 0
             
         # Update password if provided (admin/manager can reset passwords)
         if 'password' in data and data['password'] and current_user.role in [UserRole.superadmin, UserRole.admin, UserRole.manager]:

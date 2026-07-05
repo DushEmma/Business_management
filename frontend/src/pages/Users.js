@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Button, Modal, Form, Alert } from 'react-bootstrap';
-import { FiEdit2, FiTrash2, FiUserX } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiUserX, FiLock, FiUnlock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { settingsAPI } from '../services/api';
 import DialogService from '../components/Dialog/DialogService';
@@ -76,6 +76,36 @@ const Users = () => {
     } catch (dialogError) {
       console.error('Dialog error:', dialogError);
       toast.error('Failed to show confirmation dialog');
+    }
+  };
+
+  const handleLock = async (id) => {
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+
+    const isLocking = !user.is_locked;
+    try {
+      const confirmed = await DialogService.confirm({
+        title: `${isLocking ? 'Lock' : 'Unlock'} User`,
+        message: `Are you sure you want to ${isLocking ? 'lock' : 'unlock'} this user? ${
+          isLocking
+            ? 'They will be immediately blocked from logging in.'
+            : 'They will be able to log in again.'
+        }`,
+        type: isLocking ? 'danger' : 'info',
+        confirmText: isLocking ? 'Lock Account' : 'Unlock Account',
+        cancelText: 'Cancel'
+      });
+
+      if (confirmed) {
+        await settingsAPI.updateUser(id, { is_locked: isLocking });
+        setUsers(users.map(u =>
+          u.id === id ? { ...u, is_locked: isLocking } : u
+        ));
+        toast.success(`User ${isLocking ? 'locked' : 'unlocked'} successfully`);
+      }
+    } catch (err) {
+      toast.error(`Failed to ${isLocking ? 'lock' : 'unlock'} user`);
     }
   };
 
@@ -195,6 +225,7 @@ const Users = () => {
                       <th className="border-0">Name</th>
                       <th className="border-0">Role</th>
                       <th className="border-0">Status</th>
+                      <th className="border-0">Lock</th>
                       <th className="pe-4 border-0 text-end">Actions</th>
                     </tr>
                   </thead>
@@ -215,6 +246,11 @@ const Users = () => {
                             {user.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
+                        <td>
+                          <span className={`badge ${user.is_locked ? 'bg-danger' : 'bg-light text-dark border'} fw-normal`}>
+                            {user.is_locked ? '🔒 Locked' : '🔓 Unlocked'}
+                          </span>
+                        </td>
                         <td className="pe-2 pe-md-4 text-end">
                           <div className="d-flex gap-1 gap-md-2 justify-content-end">
                             <Button
@@ -226,6 +262,17 @@ const Users = () => {
                             >
                               <FiEdit2 size={14} className="d-md-none" />
                               <span className="d-none d-md-inline">Edit</span>
+                            </Button>
+                            <Button
+                              variant={user.is_locked ? 'outline-success' : 'outline-danger'}
+                              size="sm"
+                              className="d-flex align-items-center"
+                              onClick={() => handleLock(user.id)}
+                              title={user.is_locked ? 'Unlock User' : 'Lock User'}
+                            >
+                              {user.is_locked
+                                ? <><FiUnlock size={14} className="d-md-none" /><span className="d-none d-md-inline">Unlock</span></>
+                                : <><FiLock size={14} className="d-md-none" /><span className="d-none d-md-inline">Lock</span></>}
                             </Button>
                             <Button
                               variant="outline-secondary"
