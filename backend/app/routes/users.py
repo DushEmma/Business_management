@@ -257,7 +257,7 @@ def create_user():
                 pass  # Use default role
         
         # Create new user
-        user = User(
+        user = User(  # type: ignore
             username=data['username'],
             email=data['email'],
             first_name=data['first_name'],

@@ -339,6 +339,9 @@ class UserPermission(db.Model):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    def __init__(self, **kwargs):
+        super(UserPermission, self).__init__(**kwargs)
+    
     # Relationships
     user = relationship('User', backref='permissions', foreign_keys=[user_id])
     business = relationship('Business', back_populates='permissions')
