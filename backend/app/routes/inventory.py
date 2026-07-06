@@ -6,7 +6,7 @@ from app.models.product import Product
 from app.models.category import Category
 from app.models.supplier import Supplier
 from app.models.inventory_transaction import InventoryTransaction
-from app.utils.decorators import staff_required, manager_required, admin_required
+from app.utils.decorators import permission_required, staff_required, manager_required, admin_required
 from app.utils.middleware import get_business_id, get_active_branch_id
 from datetime import datetime
 import os
@@ -16,7 +16,7 @@ from app.utils.notifications import check_low_stock_and_notify, check_expiry_and
 inventory_bp = Blueprint('inventory', __name__)
 
 @inventory_bp.route('/products', methods=['GET'])
-@admin_required
+@permission_required('inventory', 'view')
 def get_products():
     try:
         business_id = get_business_id()
@@ -86,7 +86,7 @@ def get_products():
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/products', methods=['POST'])
-@admin_required
+@permission_required('inventory', 'create')
 def create_product():
     try:
         business_id = get_business_id()
@@ -200,7 +200,7 @@ def create_product():
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/products/<int:product_id>', methods=['GET'])
-@admin_required
+@permission_required('inventory', 'view')
 def get_product(product_id):
     try:
         business_id = get_business_id()
@@ -215,7 +215,7 @@ def get_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/products/<int:product_id>', methods=['PUT'])
-@admin_required
+@permission_required('inventory', 'edit')
 def update_product(product_id):
     try:
         business_id = get_business_id()
@@ -337,7 +337,7 @@ def update_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/products/<int:product_id>', methods=['DELETE'])
-@admin_required
+@permission_required('inventory', 'delete')
 def delete_product(product_id):
     try:
         business_id = get_business_id()
@@ -356,7 +356,7 @@ def delete_product(product_id):
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/categories', methods=['GET'])
-@admin_required
+@permission_required('inventory', 'view')
 def get_categories():
     try:
         business_id = get_business_id()
@@ -369,7 +369,7 @@ def get_categories():
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/categories', methods=['POST'])
-@admin_required
+@permission_required('inventory', 'create')
 def create_category():
     try:
         business_id = get_business_id()
@@ -418,7 +418,7 @@ def create_category():
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/categories/<int:category_id>', methods=['PUT'])
-@admin_required
+@permission_required('inventory', 'edit')
 def update_category(category_id):
     try:
         business_id = get_business_id()
@@ -485,7 +485,7 @@ def update_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/categories/<int:category_id>', methods=['DELETE'])
-@admin_required
+@permission_required('inventory', 'delete')
 def delete_category(category_id):
     try:
         business_id = get_business_id()
@@ -510,7 +510,7 @@ def delete_category(category_id):
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/stock-adjustment', methods=['POST'])
-@admin_required
+@permission_required('inventory', 'create')
 def adjust_stock():
     try:
         business_id = get_business_id()
@@ -587,7 +587,7 @@ def adjust_stock():
 
 # Get inventory transactions (stock movements)
 @inventory_bp.route('/transactions', methods=['GET'])
-@admin_required
+@permission_required('inventory', 'view')
 def get_inventory_transactions():
     try:
         business_id = get_business_id()
@@ -634,9 +634,117 @@ def get_inventory_transactions():
         return jsonify({'error': str(e)}), 500
 
 
+# Update an inventory transaction
+@inventory_bp.route('/transactions/<int:transaction_id>', methods=['PUT'])
+@permission_required('inventory', 'edit')
+def update_inventory_transaction(transaction_id):
+    try:
+        business_id = get_business_id()
+        data = request.get_json()
+
+        transaction = InventoryTransaction.query.filter_by(
+            id=transaction_id, business_id=business_id
+        ).first()
+        if not transaction:
+            return jsonify({'error': 'Transaction not found'}), 404
+
+        old_quantity = transaction.quantity
+        old_type = transaction.transaction_type
+        old_type_val = old_type.value if hasattr(old_type, 'value') else old_type
+
+        # Revert the old stock change
+        product = Product.query.get(transaction.product_id)
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+
+        if old_type_val in ('adjustment_in', 'purchase', 'return'):
+            product.stock_quantity -= old_quantity
+        else:
+            product.stock_quantity += old_quantity
+
+        # Apply new values
+        new_quantity = int(data.get('quantity', old_quantity))
+        new_notes = data.get('notes', transaction.notes)
+        new_type_str = data.get('adjustment_type', None)
+
+        if new_type_str:
+            from app.models.inventory_transaction import TransactionType
+            new_type = TransactionType.ADJUSTMENT_IN if new_type_str.upper() == 'IN' else TransactionType.ADJUSTMENT_OUT
+            transaction.transaction_type = new_type
+            new_type_val = new_type.value
+        else:
+            new_type = transaction.transaction_type
+            new_type_val = old_type_val
+
+        transaction.quantity = new_quantity
+        transaction.notes = new_notes
+        transaction.reference_id = new_notes
+        transaction.updated_at = datetime.utcnow()
+
+        # Apply new stock change
+        if new_type_val in ('adjustment_in', 'purchase', 'return'):
+            product.stock_quantity += new_quantity
+        else:
+            if product.stock_quantity < new_quantity:
+                db.session.rollback()
+                return jsonify({'error': 'Insufficient stock for this adjustment'}), 400
+            product.stock_quantity -= new_quantity
+
+        product.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Transaction updated successfully',
+            'transaction': transaction.to_dict()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+# Delete an inventory transaction
+@inventory_bp.route('/transactions/<int:transaction_id>', methods=['DELETE'])
+@permission_required('inventory', 'delete')
+def delete_inventory_transaction(transaction_id):
+    try:
+        business_id = get_business_id()
+
+        transaction = InventoryTransaction.query.filter_by(
+            id=transaction_id, business_id=business_id
+        ).first()
+        if not transaction:
+            return jsonify({'error': 'Transaction not found'}), 404
+
+        # Revert stock change
+        product = Product.query.get(transaction.product_id)
+        if product:
+            tx_type = transaction.transaction_type
+            type_val = tx_type.value if hasattr(tx_type, 'value') else tx_type
+            
+            if type_val in ('adjustment_in', 'purchase', 'return'):
+                product.stock_quantity -= transaction.quantity
+                if product.stock_quantity < 0:
+                    product.stock_quantity = 0
+            else:
+                product.stock_quantity += transaction.quantity
+            product.updated_at = datetime.utcnow()
+
+        db.session.delete(transaction)
+        db.session.commit()
+
+        return jsonify({'message': 'Transaction deleted successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
 # Bulk upload products via CSV
 @inventory_bp.route('/products/bulk-upload', methods=['POST'])
-@admin_required
+@permission_required('inventory', 'create')
 @manager_required
 def bulk_upload_products():
     try:
@@ -892,7 +1000,7 @@ def bulk_upload_products():
         return jsonify({'error': str(e)}), 500
 
 @inventory_bp.route('/summary', methods=['GET'])
-@admin_required
+@permission_required('inventory', 'view')
 def get_inventory_summary():
     """Get inventory summary including low stock products"""
     try:

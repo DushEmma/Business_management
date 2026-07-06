@@ -305,14 +305,21 @@ const Users = () => {
     };
 
     const handleDeletePerm = async (id) => {
-        if (window.confirm('Are you sure you want to delete this permission?')) {
-            try {
+        try {
+            const confirmed = await DialogService.confirm({
+                title: 'Delete Permission',
+                message: 'Are you sure you want to remove this permission? The user will lose access to this module.',
+                type: 'danger',
+                confirmText: 'Delete Permission',
+                cancelText: 'Cancel'
+            });
+            if (confirmed) {
                 await settingsAPI.deletePermission(id);
                 toast.success('Permission deleted successfully');
                 fetchData();
-            } catch (err) {
-                toast.error('Failed to delete permission');
             }
+        } catch (err) {
+            toast.error('Failed to delete permission');
         }
     };
 
@@ -673,6 +680,70 @@ const Users = () => {
                                     <Form.Check type="checkbox" id="active-switch" label="Active Account" checked={userFormData.is_active} onChange={(e) => setUserFormData({ ...userFormData, is_active: e.target.checked })} />
                                 </Form.Group>
                             </Col>
+                            {userFormData.role !== 'admin' && (
+                                <Col md={12}>
+                                    <hr className="my-3" />
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <Form.Label className="fw-semibold small mb-0">Module Permissions</Form.Label>
+                                            <div className="text-muted" style={{fontSize:'0.75rem'}}>Toggle which modules this user can access</div>
+                                        </div>
+                                        <Button variant="outline-secondary" size="sm" onClick={() => setUserFormData({...userFormData, permissions: {}})}>Clear All</Button>
+                                    </div>
+                                    <div style={{maxHeight:'300px', overflowY:'auto'}}>
+                                        {modules.map(mod => {
+                                            const modPerms = userFormData.permissions?.[mod.value] || [];
+                                            const hasAccess = modPerms.length > 0;
+                                            return (
+                                                <div key={mod.value} className={`border rounded p-2 mb-2 ${hasAccess ? 'border-primary bg-light' : ''}`}>
+                                                    <div className="d-flex align-items-center justify-content-between">
+                                                        <Form.Check
+                                                            type="switch"
+                                                            id={`mod-${mod.value}`}
+                                                            label={<span className="fw-semibold small">{mod.label}</span>}
+                                                            checked={hasAccess}
+                                                            onChange={(e) => {
+                                                                const newPerms = { ...userFormData.permissions };
+                                                                if (e.target.checked) {
+                                                                    newPerms[mod.value] = ['view'];
+                                                                } else {
+                                                                    delete newPerms[mod.value];
+                                                                }
+                                                                setUserFormData({ ...userFormData, permissions: newPerms });
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    {hasAccess && (
+                                                        <div className="d-flex flex-wrap gap-1 mt-2 ps-2">
+                                                            {permissionsList.map(perm => (
+                                                                <button
+                                                                    key={perm.value}
+                                                                    type="button"
+                                                                    className={`btn btn-xs btn-sm py-0 px-2 ${modPerms.includes(perm.value) ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                                                    style={{fontSize:'0.7rem'}}
+                                                                    onClick={() => {
+                                                                        const newPerms = { ...userFormData.permissions };
+                                                                        const curr = newPerms[mod.value] || [];
+                                                                        if (curr.includes(perm.value)) {
+                                                                            newPerms[mod.value] = curr.filter(p => p !== perm.value);
+                                                                            if (newPerms[mod.value].length === 0) delete newPerms[mod.value];
+                                                                        } else {
+                                                                            newPerms[mod.value] = [...curr, perm.value];
+                                                                        }
+                                                                        setUserFormData({ ...userFormData, permissions: newPerms });
+                                                                    }}
+                                                                >
+                                                                    {perm.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </Col>
+                            )}
                         </Row>
                     </Form>
                 </Modal.Body>

@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models.user import User
 from app.models.warehouse import Warehouse
-from app.utils.decorators import staff_required, manager_required, admin_required
+from app.utils.decorators import permission_required, staff_required, manager_required, admin_required
 from app.utils.middleware import get_business_id, get_active_branch_id
 from datetime import datetime
 import uuid
@@ -12,7 +12,7 @@ warehouse_bp = Blueprint('warehouse', __name__)
 
 
 @warehouse_bp.route('/', methods=['GET'])
-@admin_required
+@permission_required('warehouse', 'view')
 def get_warehouses():
     try:
         business_id = get_business_id()
@@ -40,7 +40,7 @@ def get_warehouses():
 
 
 @warehouse_bp.route('/<int:warehouse_id>', methods=['GET'])
-@admin_required
+@permission_required('warehouse', 'view')
 def get_warehouse(warehouse_id):
     try:
         business_id = get_business_id()
@@ -56,7 +56,7 @@ def get_warehouse(warehouse_id):
 
 
 @warehouse_bp.route('/', methods=['POST'])
-@admin_required
+@permission_required('warehouse', 'create')
 @manager_required
 def create_warehouse():
     try:
@@ -122,7 +122,7 @@ def create_warehouse():
 
 
 @warehouse_bp.route('/<int:warehouse_id>', methods=['PUT'])
-@admin_required
+@permission_required('warehouse', 'edit')
 def update_warehouse(warehouse_id):
     try:
         business_id = get_business_id()
@@ -188,7 +188,7 @@ def update_warehouse(warehouse_id):
 
 
 @warehouse_bp.route('/<int:warehouse_id>', methods=['DELETE'])
-@admin_required
+@permission_required('warehouse', 'delete')
 def delete_warehouse(warehouse_id):
     try:
         business_id = get_business_id()

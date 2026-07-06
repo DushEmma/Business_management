@@ -5,14 +5,14 @@ from app.models.asset import Asset, AssetStatus
 from app.models.user import User
 from app.models.business import Business
 from app.utils.middleware import get_active_branch_id
-from app.utils.decorators import admin_required
+from app.utils.decorators import permission_required, admin_required
 
 from datetime import datetime
 
 assets_bp = Blueprint('assets', __name__)
 
 @assets_bp.route('/', methods=['GET'])
-@admin_required
+@permission_required('assets', 'view')
 def get_assets():
     try:
         claims = get_jwt()
@@ -75,7 +75,7 @@ def get_assets():
 
 
 @assets_bp.route('/<int:asset_id>', methods=['GET'])
-@admin_required
+@permission_required('assets', 'view')
 def get_asset(asset_id):
     try:
         claims = get_jwt()
@@ -91,7 +91,7 @@ def get_asset(asset_id):
 
 
 @assets_bp.route('/', methods=['POST'])
-@admin_required
+@permission_required('assets', 'create')
 def create_asset():
     try:
         claims = get_jwt()
@@ -150,7 +150,7 @@ def create_asset():
 
 
 @assets_bp.route('/<int:asset_id>', methods=['PUT'])
-@admin_required
+@permission_required('assets', 'edit')
 def update_asset(asset_id):
     try:
         claims = get_jwt()
@@ -192,7 +192,7 @@ def update_asset(asset_id):
 
 
 @assets_bp.route('/<int:asset_id>', methods=['DELETE'])
-@admin_required
+@permission_required('assets', 'delete')
 def delete_asset(asset_id):
     try:
         claims = get_jwt()

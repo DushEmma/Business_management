@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Row, Col, Card, Table, Button, Modal, Form, InputGroup, Badge } from 'react-bootstrap';
-import { FiPlus, FiSearch, FiArrowUpRight, FiArrowDownLeft, FiRefreshCw, FiPackage, FiCalendar, FiInfo, FiLayers } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiArrowUpRight, FiArrowDownLeft, FiRefreshCw, FiPackage, FiCalendar, FiInfo, FiLayers, FiEdit, FiTrash2 } from 'react-icons/fi';
+import { useAuth } from '../components/auth/AuthContext';
 import { inventoryAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const StockMovements = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
     const [movements, setMovements] = useState([]);
     const [products, setProducts] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [currentMovement, setCurrentMovement] = useState(null);
+    const [movementToDelete, setMovementToDelete] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
     const location = useLocation();
@@ -86,6 +93,54 @@ const StockMovements = () => {
             toast.error(err.response?.data?.error || 'Failed to adjust stock.');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleEditClick = (movement) => {
+        setCurrentMovement(movement);
+        setShowEditModal(true);
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const updateData = {
+            quantity: parseInt(formData.get('quantity')),
+            adjustment_type: formData.get('type') === 'add' ? 'IN' : 'OUT',
+            notes: formData.get('reason')
+        };
+
+        setIsSaving(true);
+        try {
+            await inventoryAPI.updateInventoryTransaction(currentMovement.id, updateData);
+            toast.success('Movement updated successfully!');
+            fetchData();
+            setShowEditModal(false);
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to update movement.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDeleteClick = (movement) => {
+        setMovementToDelete(movement);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!movementToDelete) return;
+        setIsSaving(true);
+        try {
+            await inventoryAPI.deleteInventoryTransaction(movementToDelete.id);
+            toast.success('Movement deleted successfully!');
+            fetchData();
+            setShowDeleteModal(false);
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to delete movement.');
+        } finally {
+            setIsSaving(false);
+            setMovementToDelete(null);
         }
     };
 
@@ -240,7 +295,8 @@ const StockMovements = () => {
                                         <th className="border-0 py-4 text-muted small text-uppercase">Quantity</th>
                                         <th className="border-0 py-4 text-muted small text-uppercase">Reason & Reference</th>
                                         <th className="border-0 py-4 text-muted small text-uppercase">Timestamp</th>
-                                        <th className="border-0 py-4 pe-4 text-end text-muted small text-uppercase">Executor</th>
+                                        <th className="border-0 py-4 text-muted small text-uppercase">Executor</th>
+                                        {isAdmin && <th className="border-0 py-4 pe-4 text-end text-muted small text-uppercase">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -296,8 +352,8 @@ const StockMovements = () => {
                                                             <FiCalendar className="me-2 text-muted" /> {m.date}
                                                         </div>
                                                     </td>
-                                                    <td className="text-end pe-4">
-                                                        <div className="d-flex align-items-center justify-content-end">
+                                                    <td>
+                                                        <div className="d-flex align-items-center">
                                                             <div className="text-end me-2">
                                                                 <div className="fw-semibold small text-dark">{m.user}</div>
                                                             </div>
@@ -306,11 +362,31 @@ const StockMovements = () => {
                                                             </div>
                                                         </div>
                                                     </td>
+                                                    {isAdmin && (
+                                                        <td className="text-end pe-4">
+                                                            <Button 
+                                                                variant="link" 
+                                                                className="text-primary p-0 me-3" 
+                                                                onClick={() => handleEditClick(m)}
+                                                                title="Edit Movement"
+                                                            >
+                                                                <FiEdit size={16} />
+                                                            </Button>
+                                                            <Button 
+                                                                variant="link" 
+                                                                className="text-danger p-0" 
+                                                                onClick={() => handleDeleteClick(m)}
+                                                                title="Delete Movement"
+                                                            >
+                                                                <FiTrash2 size={16} />
+                                                            </Button>
+                                                        </td>
+                                                    )}
                                                 </motion.tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="6" className="text-center py-5">
+                                                <td colSpan={isAdmin ? "7" : "6"} className="text-center py-5">
                                                     <div className="py-5 text-muted">
                                                         <FiLayers size={48} className="mb-3 opacity-25" />
                                                         <h5>No movements found</h5>
@@ -435,6 +511,148 @@ const StockMovements = () => {
                                 </Button>
                             </div>
                         </Form>
+                    </Modal.Body>
+                </motion.div>
+            </Modal>
+
+            {/* Edit Modal */}
+            <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered size="md" className="custom-modern-modal">
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                >
+                    <Modal.Header closeButton className="border-0 pb-0 pt-4 px-4">
+                        <Modal.Title className="fw-bold fs-4">Edit Stock Adjustment</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="p-4">
+                        {currentMovement && (
+                            <Form onSubmit={handleEditSubmit}>
+                                {/* Adjustment Type Tabs */}
+                                <div className="d-flex p-1 bg-light rounded-4 mb-4" style={{ border: '1px solid #e2e8f0' }}>
+                                    <input type="hidden" name="type" value={currentMovement.type === 'in' ? 'add' : 'subtract'} id="edit-adjustment-type-hidden" />
+                                    <button 
+                                        type="button"
+                                        className={`btn flex-grow-1 border-0 py-2 rounded-3 transition-all ${currentMovement.type === 'in' ? 'bg-white shadow-sm text-dark fw-bold' : 'text-muted'}`}
+                                        onClick={() => {
+                                            const input = document.getElementById('edit-adjustment-type-hidden');
+                                            if (input) input.value = 'add';
+                                            setCurrentMovement({...currentMovement, type: 'in'});
+                                        }}
+                                    >
+                                        <FiArrowUpRight className="me-2" /> Stock In
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        className={`btn flex-grow-1 border-0 py-2 rounded-3 transition-all ${currentMovement.type === 'out' ? 'bg-white shadow-sm text-dark fw-bold' : 'text-muted'}`}
+                                        onClick={() => {
+                                            const input = document.getElementById('edit-adjustment-type-hidden');
+                                            if (input) input.value = 'subtract';
+                                            setCurrentMovement({...currentMovement, type: 'out'});
+                                        }}
+                                    >
+                                        <FiArrowDownLeft className="me-2" /> Stock Out
+                                    </button>
+                                </div>
+
+                                <Form.Group className="mb-4">
+                                    <Form.Label className="small text-muted fw-bold text-uppercase">Product</Form.Label>
+                                    <Form.Control 
+                                        type="text"
+                                        value={currentMovement.product}
+                                        disabled
+                                        className="py-3 px-3 bg-light border-0 shadow-none text-muted"
+                                        style={{ borderRadius: '12px' }}
+                                    />
+                                </Form.Group>
+
+                                <Form.Group className="mb-4">
+                                    <Form.Label className="small text-muted fw-bold text-uppercase">Quantity</Form.Label>
+                                    <Form.Control 
+                                        name="quantity" 
+                                        type="number" 
+                                        min="1" 
+                                        required 
+                                        defaultValue={currentMovement.quantity}
+                                        className="py-3 px-3 bg-light border-0 shadow-none"
+                                        style={{ borderRadius: '12px' }}
+                                    />
+                                </Form.Group>
+
+                                <Form.Group className="mb-4">
+                                    <Form.Label className="small text-muted fw-bold text-uppercase">Notes / Reason</Form.Label>
+                                    <Form.Control 
+                                        name="reason" 
+                                        as="textarea" 
+                                        rows={3} 
+                                        required 
+                                        defaultValue={currentMovement.reason}
+                                        className="py-3 px-3 bg-light border-0 shadow-none"
+                                        style={{ borderRadius: '12px' }}
+                                    />
+                                </Form.Group>
+
+                                <div className="d-grid gap-2">
+                                    <Button 
+                                        variant="dark" 
+                                        type="submit" 
+                                        disabled={isSaving}
+                                        className="py-3 border-0 shadow-sm"
+                                        style={{ borderRadius: '12px', fontWeight: '600' }}
+                                    >
+                                        {isSaving ? 'Updating...' : 'Save Changes'}
+                                    </Button>
+                                    <Button 
+                                        variant="link" 
+                                        className="text-muted text-decoration-none small mt-1" 
+                                        onClick={() => setShowEditModal(false)}
+                                    >
+                                        Cancel and Close
+                                    </Button>
+                                </div>
+                            </Form>
+                        )}
+                    </Modal.Body>
+                </motion.div>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered size="sm" className="custom-modern-modal">
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                >
+                    <Modal.Body className="p-4 text-center">
+                        <div className="mb-4">
+                            <div className="mx-auto bg-danger bg-opacity-10 d-flex align-items-center justify-content-center rounded-circle" style={{ width: '80px', height: '80px' }}>
+                                <FiTrash2 className="text-danger" size={40} />
+                            </div>
+                        </div>
+                        <h4 className="fw-bold mb-3">Delete Movement?</h4>
+                        <p className="text-muted mb-4">
+                            Are you sure you want to delete this inventory movement? This action will <span className="fw-bold text-danger">reverse the stock change</span> and cannot be undone.
+                        </p>
+                        <div className="d-flex gap-2 justify-content-center">
+                            <Button 
+                                variant="light" 
+                                className="px-4 py-2 border-0 fw-semibold shadow-sm"
+                                style={{ borderRadius: '12px' }}
+                                onClick={() => setShowDeleteModal(false)}
+                                disabled={isSaving}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                variant="danger" 
+                                className="px-4 py-2 border-0 fw-semibold shadow-sm"
+                                style={{ borderRadius: '12px' }}
+                                onClick={confirmDelete}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? 'Deleting...' : 'Yes, Delete'}
+                            </Button>
+                        </div>
                     </Modal.Body>
                 </motion.div>
             </Modal>

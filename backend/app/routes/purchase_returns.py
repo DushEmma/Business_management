@@ -7,7 +7,7 @@ from app.models.purchase_order import PurchaseOrder
 from app.models.product import Product
 from app.models.purchase_return import PurchaseReturn, PurchaseReturnItem, PurchaseReturnStatus
 from app.models.audit_log import create_audit_log, AuditAction
-from app.utils.decorators import staff_required, manager_required, admin_required
+from app.utils.decorators import permission_required, staff_required, manager_required, admin_required
 from app.utils.middleware import get_business_id, get_active_branch_id
 from datetime import datetime, timedelta
 import re
@@ -282,7 +282,7 @@ def get_purchase_return(return_id):
         return jsonify({'error': str(e)}), 500
 
 @purchase_returns_bp.route('/<int:return_id>', methods=['PUT'])
-@admin_required
+@permission_required('purchases', 'edit')
 def update_purchase_return(return_id):
     try:
         business_id = get_business_id()
@@ -335,7 +335,7 @@ def update_purchase_return(return_id):
         return jsonify({'error': str(e)}), 500
 
 @purchase_returns_bp.route('/<int:return_id>', methods=['DELETE'])
-@admin_required
+@permission_required('purchases', 'delete')
 def delete_purchase_return(return_id):
     try:
         business_id = get_business_id()
@@ -361,7 +361,7 @@ def delete_purchase_return(return_id):
         return jsonify({'error': str(e)}), 500
 
 @purchase_returns_bp.route('/<int:return_id>/status', methods=['PUT'])
-@admin_required
+@permission_required('purchases', 'edit')
 def update_purchase_return_status(return_id):
     try:
         business_id = get_business_id()

@@ -5,14 +5,14 @@ from app.models.user import User
 from app.models.supplier import Supplier
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder, PurchaseOrderItem, PurchaseOrderStatus
-from app.utils.decorators import staff_required, manager_required, admin_required
+from app.utils.decorators import permission_required, staff_required, manager_required, admin_required
 from app.utils.middleware import get_business_id, get_active_branch_id
 from datetime import datetime
 
 purchases_bp = Blueprint('purchases', __name__)
 
 @purchases_bp.route('/orders', methods=['GET'])
-@admin_required
+@permission_required('purchases', 'view')
 def get_purchase_orders():
     try:
         business_id = get_business_id()
@@ -76,7 +76,7 @@ def get_purchase_orders():
         return jsonify({'error': str(e)}), 500
 
 @purchases_bp.route('/orders', methods=['POST'])
-@admin_required
+@permission_required('purchases', 'create')
 def create_purchase_order():
     try:
         business_id = get_business_id()
@@ -202,7 +202,7 @@ def create_purchase_order():
         return jsonify({'error': str(e)}), 500
 
 @purchases_bp.route('/orders/<int:order_id>', methods=['GET'])
-@admin_required
+@permission_required('purchases', 'view')
 def get_purchase_order(order_id):
     try:
         business_id = get_business_id()
@@ -217,7 +217,7 @@ def get_purchase_order(order_id):
         return jsonify({'error': str(e)}), 500
 
 @purchases_bp.route('/orders/<int:order_id>', methods=['PUT'])
-@admin_required
+@permission_required('purchases', 'edit')
 @admin_required
 def update_purchase_order(order_id):
     try:
@@ -269,7 +269,7 @@ def update_purchase_order(order_id):
         return jsonify({'error': str(e)}), 500
 
 @purchases_bp.route('/goods-receipt', methods=['POST'])
-@admin_required
+@permission_required('purchases', 'create')
 def receive_goods():
     try:
         business_id = get_business_id()
@@ -332,7 +332,7 @@ def receive_goods():
         return jsonify({'error': str(e)}), 500
 
 @purchases_bp.route('/suppliers', methods=['GET'])
-@admin_required
+@permission_required('purchases', 'view')
 def get_suppliers_for_purchases():
     try:
         business_id = get_business_id()
@@ -345,7 +345,7 @@ def get_suppliers_for_purchases():
         return jsonify({'error': str(e)}), 500
 
 @purchases_bp.route('/orders/<int:order_id>', methods=['DELETE'])
-@admin_required
+@permission_required('purchases', 'delete')
 @admin_required
 def delete_purchase_order(order_id):
     try:

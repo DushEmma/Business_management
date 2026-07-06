@@ -7,7 +7,7 @@ from app.models.product import Product
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.invoice import Invoice, InvoiceStatus
 from app.models.audit_log import create_audit_log, AuditAction
-from app.utils.decorators import staff_required, manager_required, admin_required
+from app.utils.decorators import permission_required, staff_required, manager_required, admin_required
 from app.utils.middleware import get_business_id, get_active_branch_id
 from datetime import datetime, timedelta
 import re
@@ -18,7 +18,7 @@ from app.utils.notifications import check_low_stock_and_notify
 sales_bp = Blueprint('sales', __name__)
 
 @sales_bp.route('/orders', methods=['GET'])
-@admin_required
+@permission_required('sales', 'view')
 def get_orders():
     try:
         business_id = get_business_id()
@@ -75,7 +75,7 @@ def get_orders():
         return jsonify({'error': str(e)}), 500
 
 @sales_bp.route('/orders', methods=['POST'])
-@admin_required
+@permission_required('sales', 'create')
 def create_order(is_pos_sale=False):
     try:
         business_id = get_business_id()
@@ -398,7 +398,7 @@ def create_order(is_pos_sale=False):
         return jsonify({'error': str(e)}), 500
 
 @sales_bp.route('/orders/<int:order_id>', methods=['GET'])
-@admin_required
+@permission_required('sales', 'view')
 def get_order(order_id):
     try:
         business_id = get_business_id()
@@ -413,7 +413,7 @@ def get_order(order_id):
         return jsonify({'error': str(e)}), 500
 
 @sales_bp.route('/orders/<int:order_id>', methods=['PUT'])
-@admin_required
+@permission_required('sales', 'edit')
 def update_order(order_id):
     try:
         business_id = get_business_id()
@@ -532,7 +532,7 @@ def update_order(order_id):
         return jsonify({'error': str(e)}), 500
 
 @sales_bp.route('/orders/<int:order_id>', methods=['DELETE'])
-@admin_required
+@permission_required('sales', 'delete')
 def delete_order(order_id):
     try:
         business_id = get_business_id()
@@ -555,7 +555,7 @@ def delete_order(order_id):
         return jsonify({'error': str(e)}), 500
 
 @sales_bp.route('/pos', methods=['POST'])
-@admin_required
+@permission_required('sales', 'create')
 @admin_required
 def create_pos_sale():
     try:
@@ -566,7 +566,7 @@ def create_pos_sale():
         return jsonify({'error': str(e)}), 500
 
 @sales_bp.route('/export/orders', methods=['GET'])
-@admin_required
+@permission_required('sales', 'view')
 def export_orders():
     """
     Export sales orders to CSV format

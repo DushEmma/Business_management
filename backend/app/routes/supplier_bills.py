@@ -5,7 +5,7 @@ from app.models.user import User
 from app.models.supplier import Supplier
 from app.models.purchase_order import PurchaseOrder
 from app.models.supplier_bill import SupplierBill
-from app.utils.decorators import staff_required, manager_required, admin_required
+from app.utils.decorators import permission_required, staff_required, manager_required, admin_required
 from app.utils.middleware import get_business_id, get_active_branch_id
 from datetime import datetime
 import re
@@ -147,7 +147,7 @@ def create_supplier_bill():
 
 
 @supplier_bills_bp.route('/<int:bill_id>', methods=['PUT'])
-@admin_required
+@permission_required('suppliers', 'edit')
 def update_supplier_bill(bill_id):
     try:
         business_id = get_business_id()
@@ -200,7 +200,7 @@ def update_supplier_bill(bill_id):
 
 
 @supplier_bills_bp.route('/<int:bill_id>', methods=['DELETE'])
-@admin_required
+@permission_required('suppliers', 'delete')
 def delete_supplier_bill(bill_id):
     try:
         business_id = get_business_id()

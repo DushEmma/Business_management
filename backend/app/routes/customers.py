@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models.user import User
 from app.models.customer import Customer
-from app.utils.decorators import staff_required, manager_required, admin_required
+from app.utils.decorators import permission_required, staff_required, manager_required, admin_required
 from app.utils.middleware import get_business_id, get_active_branch_id
 from datetime import datetime
 import re
@@ -12,7 +12,7 @@ import csv
 customers_bp = Blueprint('customers', __name__)
 
 @customers_bp.route('/', methods=['GET'])
-@admin_required
+@permission_required('customers', 'view')
 def get_customers():
     try:
         business_id = get_business_id()
@@ -61,7 +61,7 @@ def get_customers():
         return jsonify({'error': str(e)}), 500
 
 @customers_bp.route('/', methods=['POST'])
-@admin_required
+@permission_required('customers', 'create')
 def create_customer():
     try:
         business_id = get_business_id()
@@ -136,7 +136,7 @@ def create_customer():
         return jsonify({'error': str(e)}), 500
 
 @customers_bp.route('/<int:customer_id>', methods=['GET'])
-@admin_required
+@permission_required('customers', 'view')
 def get_customer(customer_id):
     try:
         business_id = get_business_id()
@@ -151,7 +151,7 @@ def get_customer(customer_id):
         return jsonify({'error': str(e)}), 500
 
 @customers_bp.route('/<int:customer_id>', methods=['PUT'])
-@admin_required
+@permission_required('customers', 'edit')
 def update_customer(customer_id):
     try:
         business_id = get_business_id()
@@ -212,7 +212,7 @@ def update_customer(customer_id):
         return jsonify({'error': str(e)}), 500
 
 @customers_bp.route('/<int:customer_id>', methods=['DELETE'])
-@admin_required
+@permission_required('customers', 'delete')
 def delete_customer(customer_id):
     try:
         business_id = get_business_id()
@@ -235,7 +235,7 @@ def delete_customer(customer_id):
         return jsonify({'error': str(e)}), 500
 
 @customers_bp.route('/<int:customer_id>/orders', methods=['GET'])
-@admin_required
+@permission_required('customers', 'view')
 def get_customer_orders(customer_id):
     try:
         business_id = get_business_id()
@@ -252,7 +252,7 @@ def get_customer_orders(customer_id):
         return jsonify({'error': str(e)}), 500
 
 @customers_bp.route('/recalculate-balances', methods=['POST'])
-@admin_required
+@permission_required('customers', 'create')
 def recalculate_balances():
     try:
         business_id = get_business_id()
@@ -279,7 +279,7 @@ def recalculate_balances():
 
 
 @customers_bp.route('/bulk-upload', methods=['POST'])
-@admin_required
+@permission_required('customers', 'create')
 @manager_required
 def bulk_upload_customers():
     """

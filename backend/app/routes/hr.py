@@ -8,7 +8,7 @@ from app.models.attendance import Attendance
 from app.models.leave_request import LeaveRequest, LeaveStatus, LeaveType
 from app.models.payroll import Payroll, PayrollStatus
 from app.models.task import Task
-from app.utils.decorators import staff_required, manager_required, admin_required
+from app.utils.decorators import permission_required, staff_required, manager_required, admin_required
 from app.utils.middleware import get_business_id, get_active_branch_id
 from app.utils import momo
 from datetime import datetime, date
@@ -203,7 +203,7 @@ def get_employee(employee_id):
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/employees/<int:employee_id>', methods=['PUT'])
-@admin_required
+@permission_required('hr', 'edit')
 def update_employee(employee_id):
     try:
         business_id = get_business_id()
@@ -253,7 +253,7 @@ def update_employee(employee_id):
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/employees/<int:employee_id>', methods=['DELETE'])
-@admin_required
+@permission_required('hr', 'delete')
 def delete_employee(employee_id):
     try:
         business_id = get_business_id()
@@ -480,7 +480,7 @@ def create_department():
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/departments/<int:dept_id>', methods=['PUT'])
-@admin_required
+@permission_required('hr', 'edit')
 def update_department(dept_id):
     try:
         business_id = get_business_id()
@@ -526,7 +526,7 @@ def update_department(dept_id):
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/departments/<int:dept_id>', methods=['DELETE'])
-@admin_required
+@permission_required('hr', 'delete')
 def delete_department(dept_id):
     try:
         business_id = get_business_id()
@@ -714,7 +714,7 @@ def create_payroll():
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/payroll/<int:payroll_id>', methods=['PUT'])
-@admin_required
+@permission_required('hr', 'edit')
 def update_payroll(payroll_id):
     try:
         business_id = get_business_id()
@@ -821,7 +821,7 @@ def get_payroll_detail(payroll_id):
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/payroll/<int:payroll_id>/approve', methods=['PUT'])
-@admin_required
+@permission_required('hr', 'edit')
 def approve_payroll(payroll_id):
     try:
         business_id = get_business_id()
@@ -851,7 +851,7 @@ def approve_payroll(payroll_id):
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/payroll/<int:payroll_id>/mark-paid', methods=['PUT'])
-@admin_required
+@permission_required('hr', 'edit')
 def mark_payroll_paid(payroll_id):
     try:
         business_id = get_business_id()
@@ -992,7 +992,7 @@ def batch_disburse_payroll():
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/payroll/<int:payroll_id>', methods=['DELETE'])
-@admin_required
+@permission_required('hr', 'delete')
 def delete_payroll(payroll_id):
     try:
         business_id = get_business_id()
@@ -1081,7 +1081,7 @@ def get_payroll_summary():
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/payroll/bulk-approve', methods=['PUT'])
-@admin_required
+@permission_required('hr', 'edit')
 def bulk_approve_payroll():
     try:
         business_id = get_business_id()
@@ -1117,7 +1117,7 @@ def bulk_approve_payroll():
         return jsonify({'error': str(e)}), 500
 
 @hr_bp.route('/payroll/bulk-pay', methods=['PUT'])
-@admin_required
+@permission_required('hr', 'edit')
 def bulk_mark_paid():
     try:
         business_id = get_business_id()
@@ -1843,7 +1843,7 @@ def create_attendance():
 
 
 @hr_bp.route('/attendance/<int:attendance_id>', methods=['PUT'])
-@admin_required
+@permission_required('hr', 'edit')
 def update_attendance(attendance_id):
     """Update an attendance record"""
     try:
@@ -1909,7 +1909,7 @@ def update_attendance(attendance_id):
 
 
 @hr_bp.route('/attendance/<int:attendance_id>', methods=['DELETE'])
-@admin_required
+@permission_required('hr', 'delete')
 def delete_attendance(attendance_id):
     """Delete an attendance record"""
     try:

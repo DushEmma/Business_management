@@ -196,6 +196,8 @@ export const inventoryAPI = {
   adjustStock: (adjustmentData) => api.post('/inventory/stock-adjustment', adjustmentData),
   bulkUploadProducts: (formData) => api.post('/inventory/products/bulk-upload', formData),
   getInventoryTransactions: (params = {}) => api.get('/inventory/transactions', { params }),
+  updateInventoryTransaction: (transactionId, data) => api.put(`/inventory/transactions/${transactionId}`, data),
+  deleteInventoryTransaction: (transactionId) => api.delete(`/inventory/transactions/${transactionId}`),
   exportProducts: () => api.get('/reports/export/inventory?format=csv', { responseType: 'blob' }),
 };
 

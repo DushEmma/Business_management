@@ -69,17 +69,40 @@ const SalesOrders = () => {
 
     const handleView = async (order) => {
         try {
+            let orderData = order;
             // If the order doesn't have items, fetch the detailed order
             if (!order.items || !Array.isArray(order.items) || order.items.length === 0) {
                 const response = await salesAPI.getOrder(order.id);
-                setCurrentOrder(response.data.order);
+                orderData = response.data.order;
+                // If the customer of this order is not in our list, add it
+                if (orderData.customer && !customers.find(c => c.id === orderData.customer.id)) {
+                    setCustomers(prev => [...prev, orderData.customer]);
+                }
             } else {
-                setCurrentOrder(order);
+                if (order.customer && typeof order.customer !== 'string' && !customers.find(c => c.id === order.customer.id)) {
+                    setCustomers(prev => [...prev, order.customer]);
+                }
             }
+            setCurrentOrder(orderData);
+            // Populate formData so the modal fields show real data
+            setFormData({
+                customer_id: orderData.customer_id || orderData.customer?.id || '',
+                order_date: orderData.date || (orderData.order_date ? orderData.order_date.split('T')[0] : ''),
+                status: orderData.status?.toLowerCase() || '',
+                payment_status: orderData.payment?.toLowerCase() || orderData.payment_status?.toLowerCase() || '',
+                notes: orderData.notes || ''
+            });
         } catch (err) {
             console.error('Error fetching order details:', err);
             // Fallback to the order passed in
             setCurrentOrder(order);
+            setFormData({
+                customer_id: order.customer_id || order.customer?.id || '',
+                order_date: order.date || (order.order_date ? order.order_date.split('T')[0] : ''),
+                status: order.status?.toLowerCase() || '',
+                payment_status: order.payment?.toLowerCase() || order.payment_status?.toLowerCase() || '',
+                notes: order.notes || ''
+            });
         }
         setShowModal(true);
     };
@@ -815,9 +838,9 @@ const SalesOrders = () => {
                         )}
 
                         <div className="d-flex justify-content-end gap-2 mt-4">
-                            <Button variant="light" onClick={handleClose} className="px-4">{"Close"}</Button>
+                            <Button variant="light" onClick={handleClose} className="px-4">Close</Button>
                             <Button variant="primary" type="submit" className="px-4" disabled={isSaving}>
-                                {isSaving ? "register_creating" : "save_sale"}
+                                {isSaving ? "Saving..." : "Save Sale"}
                             </Button>
                         </div>
                     </Form>

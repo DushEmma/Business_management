@@ -273,7 +273,7 @@ def get_permissions():
         business_id = get_business_id()
         permissions = UserPermission.query.filter_by(business_id=business_id).all()
         return jsonify({
-            'permissions': [perm.to_dict() for perm in permissions]
+            'permissions': [perm.to_dict(include_user=True) for perm in permissions]
         }), 200
             
     except Exception as e:
@@ -427,7 +427,6 @@ def delete_permission_group(group_id):
 
 
 @settings_bp.route('/permissions', methods=['POST'])
-@jwt_required()
 @admin_required
 def create_permission():
     try:
@@ -460,7 +459,6 @@ def create_permission():
 
 
 @settings_bp.route('/permissions/<int:permission_id>', methods=['PUT'])
-@jwt_required()
 @admin_required
 def update_permission(permission_id):
     try:
@@ -482,7 +480,6 @@ def update_permission(permission_id):
 
 
 @settings_bp.route('/permissions/<int:permission_id>', methods=['DELETE'])
-@jwt_required()
 @admin_required
 def delete_permission(permission_id):
     try:

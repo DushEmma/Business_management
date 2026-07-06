@@ -3,14 +3,14 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models.task import Task
 from app.utils.middleware import get_business_id, get_active_branch_id
-from app.utils.decorators import admin_required
+from app.utils.decorators import permission_required, admin_required
 
 from datetime import datetime
 
 tasks_bp = Blueprint('tasks', __name__)
 
 @tasks_bp.route('/', methods=['GET'])
-@admin_required
+@permission_required('tasks', 'view')
 def get_tasks():
     try:
         business_id = get_business_id()
@@ -26,7 +26,7 @@ def get_tasks():
         return jsonify({'error': str(e)}), 500
 
 @tasks_bp.route('/', methods=['POST'])
-@admin_required
+@permission_required('tasks', 'create')
 def create_task():
     try:
         business_id = get_business_id()
@@ -58,7 +58,7 @@ def create_task():
         return jsonify({'error': str(e)}), 500
 
 @tasks_bp.route('/<int:task_id>', methods=['PUT'])
-@admin_required
+@permission_required('tasks', 'edit')
 def update_task(task_id):
     try:
         business_id = get_business_id()
@@ -86,7 +86,7 @@ def update_task(task_id):
         return jsonify({'error': str(e)}), 500
 
 @tasks_bp.route('/<int:task_id>', methods=['DELETE'])
-@admin_required
+@permission_required('tasks', 'delete')
 def delete_task(task_id):
     try:
         business_id = get_business_id()

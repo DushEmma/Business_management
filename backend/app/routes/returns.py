@@ -8,7 +8,7 @@ from app.models.invoice import Invoice
 from app.models.product import Product
 from app.models.returns import Return, ReturnItem, ReturnStatus
 from app.models.audit_log import create_audit_log, AuditAction
-from app.utils.decorators import staff_required, manager_required, admin_required
+from app.utils.decorators import permission_required, staff_required, manager_required, admin_required
 from app.utils.middleware import get_business_id, get_active_branch_id
 from datetime import datetime
 import re
